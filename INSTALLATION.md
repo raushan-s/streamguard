@@ -31,8 +31,8 @@ sudo apt install python3.12 python3.12-venv
 ## Step 2: Clone Repository
 
 ```bash
-git clone <your-repo-url>
-cd streamguard_layers/streamguard_lambda
+git clone https://github.com/raushan-s/streamguard.git
+cd streamguard
 ```
 
 ## Step 3: Create Virtual Environment
@@ -125,13 +125,13 @@ Run the test suite:
 
 ```bash
 # Quick smoke test
-python local_test.py
+python demo_test.py
 
 # Full test suite
-pytest tests/test_handler.py -v
+python test_end_to_end.py
 ```
 
-Expected output: All tests pass ✓
+Expected output: All tests pass
 
 ## Troubleshooting
 
@@ -173,7 +173,7 @@ python -m spacy download en_core_web_sm en_core_web_lg
 ## Next Steps
 
 - Read [README.md](README.md) for usage guide
-- Check [BENCHMARK_REPORT.md](BENCHMARK_REPORT.md) for performance metrics
+- Check [USAGE.md](USAGE.md) for detailed examples
 - See test files for usage examples
 
 ## Getting Help
