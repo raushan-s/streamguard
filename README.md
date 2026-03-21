@@ -173,16 +173,6 @@ result = analyze_text(
 }
 ```
 
-## Performance
-
-- **Latency**: ~6-7 seconds (cold start), ~5-6 seconds (warm)
-- **Accuracy**: 100% on malicious input tests
-- **Detection Rates**:
-  - Jailbreak: 1.00 score on malicious inputs
-  - PII: 2 entities found in test cases
-  - Injection: 0.96 confidence score
-  - Progressive extraction: 0.85 risk score (with Layer 4 enabled)
-
 ## Documentation
 
 - [INSTALLATION.md](INSTALLATION.md) - Detailed installation guide
