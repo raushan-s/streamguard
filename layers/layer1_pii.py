@@ -100,7 +100,7 @@ class PIIDetector:
         for result in analyzer_results:
             entity_text = text[result.start:result.end]
             entities.append({
-                "type": result.entity_type,
+                "entity_type": result.entity_type,
                 "text": entity_text,
                 "score": result.score,
                 "start": result.start,
