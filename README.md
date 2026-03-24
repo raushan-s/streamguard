@@ -43,114 +43,124 @@ python -m spacy download en_core_web_lg
 # Configure environment
 cp .env.example .env
 # Edit .env with your API keys
-
-# Download ML models (required - ~2.7GB)
-python download_models.py
 ```
 
-### Basic Usage
+### First Run
+
+Models download automatically on first run (~350MB, one-time):
 
 ```python
 from streamguard import analyze_text
 
-# Simple analysis
 result = analyze_text("Your text here")
-print(result["layer_results"]["jailbreak"])
-
-# With optional parameters
-result = analyze_text(
-    text="User input",
-    session_id="session-123",  # Enables Layer 4 (stateful analysis)
-    agent_id="my-agent",
-    direction="input"
-)
+# Models download automatically if not cached
 ```
 
-### Running Tests
-
-```bash
-# Quick test
-python demo_test.py
-
-# Full test suite
-python test_end_to_end.py
-
-# Unit tests
-pytest tests/ -v
+**What to expect:**
 ```
+INFO: Local model not found, downloading from HuggingFace...
+Downloading: 100%|██████████| 202/202 [00:00<00:00, 1809.02it/s]
+INFO: Model loaded successfully
+```
+
+- **First run**: Downloads ~350MB (Prompt Guard 2 + DeBERTa)
+- **Subsequent runs**: Loads instantly from cache
+- **Cache location**: `~/.cache/huggingface/hub/`
 
 ## Configuration
 
 Create a `.env` file (copy from `.env.example`):
 
 ```bash
-# HuggingFace (required for Layers 2a, 2b)
+# Required for Layers 2a, 2b
 HF_TOKEN=hf_your_token_here
 
-# OpenAI (required for Layers 3, 4)
+# Required for Layers 3, 4
 OPENAI_API_KEY=sk-your-key-here
 
 # Optional: Layer 4 (Stateful Analysis)
-# Requires: pip install upstash-redis
-# Uncomment the lines below and set ENABLE_LAYER4=true to enable
 # UPSTASH_REDIS_URL=https://your-redis.upstash.io
 # UPSTASH_REDIS_TOKEN=your_token_here
+# ENABLE_LAYER4=true
 
-# Thresholds
+# Thresholds (optional)
 PROMPT_GUARD_THRESHOLD=0.5
 DEBERTA_THRESHOLD=0.85
 STATEFUL_RISK_THRESHOLD=0.7
-
-# Feature flags
-ENABLE_LAYER4=false  # Disabled by default (requires Upstash Redis)
 ```
 
-## Project Structure
+## Basic Usage
 
-```
-streamguard/
-├── streamguard.py          # Main library entry point
-├── config.py               # Configuration management
-├── requirements.txt        # Python dependencies
-├── .env.example           # Environment template
-├── download_models.py     # Model downloader script
-├── layers/                # Detection layers
-│   ├── layer1_pii.py      # PII detection
-│   ├── layer2a_prompt_guard.py  # Jailbreak detection
-│   ├── layer2b_deberta.py      # Injection detection
-│   ├── layer3_moderation.py    # Content moderation
-│   └── layer4_stateful.py      # Stateful analysis (optional)
-├── tests/                 # Test suite
-└── models/                # ML models (2.7GB, created by download_models.py)
-```
-
-## API Usage
-
-### Input Format
+### Simple Example
 
 ```python
 from streamguard import analyze_text
 
-# Basic usage
-result = analyze_text("Your text here")
+result = analyze_text("My email is john@example.com")
 
-# With all parameters
+# Check results
+if result['layer_results']['pii']['detected']:
+    print("PII found!")
+    for entity in result['layer_results']['pii']['entities']:
+        print(f"  {entity['entity_type']}: {entity['text']}")
+```
+
+### With All Parameters
+
+```python
 result = analyze_text(
     text="User input to analyze",
-    session_id="optional-session-id",  # Enables Layer 4
-    agent_id="agent-identifier",       # Default: "default"
-    direction="input"                  # "input" or "output"
+    session_id="user-session-123",  # Enables Layer 4 (stateful analysis)
+    agent_id="my-agent",
+    direction="input"  # or "output"
 )
 ```
 
-### Output Format
+### Checking Each Layer
+
+```python
+layer_results = result['layer_results']
+
+# Layer 1: PII Detection
+if layer_results['pii']['detected']:
+    print(f"PII: {len(layer_results['pii']['entities'])} entities")
+
+# Layer 2a: Jailbreak Detection
+if layer_results['jailbreak']['label'] == 'MALICIOUS':
+    print("Jailbreak detected!")
+
+# Layer 2b: Injection Detection
+if layer_results['injection']['label'] == 'INJECTION':
+    print("Injection detected!")
+
+# Layer 3: Content Moderation
+if layer_results['moderation']['flagged']:
+    print("Content flagged!")
+
+# Layer 4: Stateful Analysis (if enabled)
+if layer_results.get('stateful', {}).get('analyzed'):
+    risk_score = layer_results['stateful']['risk_score']
+    if risk_score > 0.7:
+        print("Multi-turn attack detected!")
+```
+
+## Output Format
 
 ```json
 {
   "layer_results": {
     "pii": {
       "detected": true,
-      "entities": [...]
+      "entities": [
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "text": "john@example.com",
+          "score": 1.0,
+          "start": 10,
+          "end": 26
+        }
+      ],
+      "sanitized": "My email is <EMAIL_ADDRESS>"
     },
     "jailbreak": {
       "prompt_guard_score": 0.99,
@@ -162,21 +172,113 @@ result = analyze_text(
     },
     "moderation": {
       "flagged": false,
-      "categories": {...}
+      "categories": {
+        "harassment": 0.001,
+        "violence": 0.0005
+      }
     },
     "stateful": {
       "analyzed": true,
-      "risk_score": 0.1
+      "risk_score": 0.85,
+      "patterns_detected": ["PROGRESSIVE_EXTRACTION"],
+      "explanation": "Multi-turn attack detected"
     }
   },
-  "latency_ms": 6500
+  "latency_ms": 1234.56
 }
 ```
 
-## Documentation
+## Running Examples & Tests
 
-- [INSTALLATION.md](INSTALLATION.md) - Detailed installation guide
-- [USAGE.md](USAGE.md) - Comprehensive usage examples and API reference
+```bash
+# Quick example - see StreamGuard in action
+python example_usage.py
+
+# Run all tests
+python tests/run_all_tests.py
+
+# Run specific test suites
+python tests/test_end_to_end.py    # Full end-to-end tests
+python tests/test_malicious.py     # Malicious input tests
+
+# Run pytest unit tests
+pytest tests/ -v
+```
+
+## Project Structure
+
+```
+streamguard/
+├── streamguard.py          # Main library entry point
+├── config.py               # Configuration management
+├── example_usage.py        # Quick start examples
+├── requirements.txt        # Python dependencies
+├── .env.example           # Environment template
+├── download_models.py     # Optional: Manual model download
+├── layers/                # Detection layers
+│   ├── layer1_pii.py      # PII detection
+│   ├── layer2a_prompt_guard.py  # Jailbreak detection
+│   ├── layer2b_deberta.py      # Injection detection
+│   ├── layer3_moderation.py    # Content moderation
+│   └── layer4_stateful.py      # Stateful analysis (optional)
+├── examples/              # Usage examples
+│   └── quick_demo.py      # Quick demonstration script
+└── tests/                 # Test suite
+    ├── test_end_to_end.py # Full end-to-end tests
+    ├── test_malicious.py  # Malicious input tests
+    ├── test_integration.py # Integration tests
+    └── test_handler.py    # Handler tests
+```
+
+## Model Download Options
+
+### Automatic Download (Recommended for Local Development)
+
+Models download automatically from HuggingFace on first run:
+- **Size**: ~350MB (one-time download)
+- **Speed**: 1-2 minutes depending on internet
+- **Cache**: Stored in `~/.cache/huggingface/hub/`
+- **Requirements**: Internet connection + `HF_TOKEN` in `.env`
+
+### Manual Download (Optional - For Lambda/Docker)
+
+For serverless/offline deployments:
+
+```bash
+python download_models.py
+# Downloads to ./models/ directory (~2.7GB)
+```
+
+**Use manual download when:**
+- Deploying to AWS Lambda (no internet)
+- Building Docker images
+- Offline environments
+- Reproducible deployments
+
+## Troubleshooting
+
+### Issue: "Cannot find model" error
+**Solution:**
+1. Ensure `HF_TOKEN` is set in `.env`
+2. Check internet connection
+3. Accept model license at https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M
+
+### Issue: "HuggingFace access denied"
+**Solution:**
+1. Visit https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M
+2. Accept the model license
+3. Generate token at https://huggingface.co/settings/tokens
+4. Add to `.env`: `HF_TOKEN=hf_your_token_here`
+
+### Issue: Slow first run
+**Solution:** Models download once (~350MB). Subsequent runs use cached models and are fast.
+
+### Issue: spaCy model error
+**Solution:**
+```bash
+python -m spacy download en_core_web_sm
+python -m spacy download en_core_web_lg
+```
 
 ## Contributing
 

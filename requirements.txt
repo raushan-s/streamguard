@@ -16,14 +16,14 @@ spacy==3.8.11
 torch==2.10.0+cpu
 transformers==5.3.0
 safetensors==0.4.5
-huggingface-hub==0.26.5
+huggingface-hub>=1.3.0,<2.0
 
 # Layer 3: Content Moderation
 httpx[http2]==0.28.1
 
 # Layer 4: Stateful Analysis (OPTIONAL)
 # Uncomment the line below to enable multi-turn conversation tracking
-# upstash-redis==1.7.0
+upstash-redis==1.7.0
 
 # Additional dependencies
 numpy==1.26.4
@@ -33,9 +33,9 @@ packaging==24.2
 pyyaml==6.0.2
 regex==2024.11.6
 requests==2.32.3
-tokenizers==0.21.0
+tokenizers>=0.22.0,<=0.23.0
 tqdm==4.67.1
-typing-extensions==4.12.2
+typing-extensions>=4.14.1
 
 # PyTorch CPU installation
 --extra-index-url https://download.pytorch.org/whl/cpu
